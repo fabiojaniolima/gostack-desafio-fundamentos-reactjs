@@ -16,6 +16,7 @@ interface FileProps {
   file: File;
   name: string;
   readableSize: string;
+  inputError: boolean;
 }
 
 const Import: React.FC = () => {
@@ -23,19 +24,36 @@ const Import: React.FC = () => {
   const history = useHistory();
 
   async function handleUpload(): Promise<void> {
-    // const data = new FormData();
+    const promise = async (file: FileProps) => {
+      const data = new FormData();
+      data.append('file', file.file);
+      try {
+        await api.post('/transactions/import', data);
+        return true; // success
+      } catch (err) {
+        return false; // error
+      }
+    };
 
-    // TODO
+    const status = await Promise.all(uploadedFiles.map(file => promise(file)));
 
-    try {
-      // await api.post('/transactions/import', data);
-    } catch (err) {
-      // console.log(err.response.error);
+    if (status.every(s => s)) {
+      history.push('/');
+    } else {
+      setUploadedFiles(
+        uploadedFiles.map((u, i) => ({ ...u, inputError: !status[i] })),
+      );
     }
   }
 
   function submitFile(files: File[]): void {
-    // TODO
+    const newFiles = files.map(file => ({
+      file,
+      name: file.name,
+      readableSize: filesize(file.size),
+      inputError: false,
+    }));
+    setUploadedFiles([...uploadedFiles, ...newFiles]);
   }
 
   return (
